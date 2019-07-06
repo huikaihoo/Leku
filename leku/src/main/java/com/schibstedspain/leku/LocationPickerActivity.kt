@@ -10,9 +10,6 @@ import android.location.Geocoder
 import android.location.Location
 import android.os.Bundle
 import android.speech.RecognizerIntent
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.Menu
@@ -20,15 +17,10 @@ import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.widget.ArrayAdapter
-import android.widget.EditText
-import android.widget.FrameLayout
-import android.widget.ImageView
-import android.widget.ListView
-import android.widget.ProgressBar
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.annotation.RawRes
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.api.GoogleApiClient
@@ -37,36 +29,24 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.places.Places
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.GoogleMap.MAP_TYPE_NORMAL
+import com.google.android.gms.maps.GoogleMap.MAP_TYPE_SATELLITE
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.MarkerOptions
-import com.google.android.gms.maps.model.MapStyleOptions
-import com.schibstedspain.leku.geocoder.GoogleGeocoderDataSource
-import com.schibstedspain.leku.geocoder.AndroidGeocoderDataSource
-import com.schibstedspain.leku.geocoder.GeocoderPresenter
-import com.schibstedspain.leku.geocoder.GeocoderRepository
-import com.schibstedspain.leku.geocoder.GeocoderViewInterface
+import com.google.android.gms.maps.model.*
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.maps.GeoApiContext
+import com.schibstedspain.leku.geocoder.*
 import com.schibstedspain.leku.geocoder.api.AddressBuilder
 import com.schibstedspain.leku.geocoder.api.NetworkClient
 import com.schibstedspain.leku.geocoder.places.GooglePlacesDataSource
-import com.schibstedspain.leku.permissions.PermissionUtils
-import com.schibstedspain.leku.tracker.TrackEvents
-import pl.charmas.android.reactivelocation2.ReactiveLocationProvider
-
-import com.google.android.gms.maps.GoogleMap.MAP_TYPE_NORMAL
-import com.google.android.gms.maps.GoogleMap.MAP_TYPE_SATELLITE
-import com.google.maps.GeoApiContext
 import com.schibstedspain.leku.geocoder.timezone.GoogleTimeZoneDataSource
 import com.schibstedspain.leku.locale.DefaultCountryLocaleRect
 import com.schibstedspain.leku.locale.SearchZoneRect
-import java.util.ArrayList
-import java.util.HashMap
-import java.util.Locale
-import java.util.TimeZone
+import com.schibstedspain.leku.permissions.PermissionUtils
+import com.schibstedspain.leku.tracker.TrackEvents
+import pl.charmas.android.reactivelocation2.ReactiveLocationProvider
+import java.util.*
 
 const val LATITUDE = "latitude"
 const val LONGITUDE = "longitude"
@@ -85,6 +65,7 @@ const val ENABLE_GOOGLE_PLACES = "enable_google_places"
 const val ENABLE_GOOGLE_TIME_ZONE = "enable_google_time_zone"
 const val POIS_LIST = "pois_list"
 const val LEKU_POI = "leku_poi"
+const val ENABLE_SEARCH = "enable_search"
 const val ENABLE_VOICE_SEARCH = "enable_voice_search"
 const val TIME_ZONE_ID = "time_zone_id"
 const val TIME_ZONE_DISPLAY_NAME = "time_zone_display_name"
@@ -121,6 +102,7 @@ class LocationPickerActivity : AppCompatActivity(),
     private var geocoderPresenter: GeocoderPresenter? = null
 
     private var adapter: ArrayAdapter<String>? = null
+    private var searchLayout: LinearLayout? = null
     private var searchView: EditText? = null
     private var street: TextView? = null
     private var coordinates: TextView? = null
@@ -156,6 +138,7 @@ class LocationPickerActivity : AppCompatActivity(),
     private var currentMarker: Marker? = null
     private var textWatcher: TextWatcher? = null
     private var apiInteractor: GoogleGeocoderDataSource? = null
+    private var isSearchEnabled = true
     private var isVoiceSearchEnabled = true
     private var isUnnamedRoadVisible = true
     private var mapStyle: Int? = null
@@ -228,8 +211,8 @@ class LocationPickerActivity : AppCompatActivity(),
         setContentView(R.layout.leku_activity_location_picker)
         setUpMainVariables()
         setUpResultsList()
-        setUpToolBar()
         updateValuesFromBundle(savedInstanceState)
+        setUpToolBar()
         checkLocationPermission()
         setUpSearchView()
         setUpMapIfNeeded()
@@ -261,6 +244,7 @@ class LocationPickerActivity : AppCompatActivity(),
         geocoderPresenter?.setUI(this)
         progressBar = findViewById(R.id.loading_progress_bar)
         progressBar?.visibility = View.GONE
+        searchLayout = findViewById(R.id.leku_search_touch_zone)
         locationInfoLayout = findViewById(R.id.location_info)
         longitude = findViewById(R.id.longitude)
         latitude = findViewById(R.id.latitude)
@@ -293,7 +277,12 @@ class LocationPickerActivity : AppCompatActivity(),
         setSupportActionBar(toolbar)
         supportActionBar?.let {
             it.setDisplayHomeAsUpEnabled(true)
-            it.setDisplayShowTitleEnabled(false)
+            it.setDisplayShowTitleEnabled(!isSearchEnabled)
+        }
+        if (isSearchEnabled) {
+            searchLayout?.visibility = View.VISIBLE
+        } else {
+            searchLayout?.visibility = View.GONE
         }
     }
 
@@ -737,6 +726,9 @@ class LocationPickerActivity : AppCompatActivity(),
         if (savedInstanceState.keySet().contains(ENABLE_LOCATION_PERMISSION_REQUEST)) {
             enableLocationPermissionRequest = savedInstanceState.getBoolean(ENABLE_LOCATION_PERMISSION_REQUEST)
         }
+        if (savedInstanceState.keySet().contains(ENABLE_SEARCH)) {
+            isSearchEnabled = savedInstanceState.getBoolean(ENABLE_SEARCH, true)
+        }
         if (savedInstanceState.keySet().contains(ENABLE_VOICE_SEARCH)) {
             isVoiceSearchEnabled = savedInstanceState.getBoolean(ENABLE_VOICE_SEARCH, true)
         }
@@ -786,6 +778,9 @@ class LocationPickerActivity : AppCompatActivity(),
         }
         if (transitionBundle.keySet().contains(ENABLE_GOOGLE_TIME_ZONE)) {
             isGoogleTimeZoneEnabled = transitionBundle.getBoolean(ENABLE_GOOGLE_TIME_ZONE, false)
+        }
+        if (transitionBundle.keySet().contains(ENABLE_SEARCH)) {
+            isSearchEnabled = transitionBundle.getBoolean(ENABLE_SEARCH, true)
         }
         if (transitionBundle.keySet().contains(ENABLE_VOICE_SEARCH)) {
             isVoiceSearchEnabled = transitionBundle.getBoolean(ENABLE_VOICE_SEARCH, true)
@@ -1220,6 +1215,7 @@ class LocationPickerActivity : AppCompatActivity(),
         private var geolocApiKey: String? = null
         private var googlePlacesEnabled = false
         private var googleTimeZoneEnabled = false
+        private var searchEnabled = true
         private var voiceSearchEnabled = true
         private var mapStyle: Int? = null
         private var unnamedRoadVisible = true
@@ -1298,6 +1294,11 @@ class LocationPickerActivity : AppCompatActivity(),
             return this
         }
 
+        fun withSearchHidden(): Builder {
+            this.searchEnabled = false
+            return this
+        }
+
         fun withVoiceSearchHidden(): Builder {
             this.voiceSearchEnabled = false
             return this
@@ -1345,6 +1346,7 @@ class LocationPickerActivity : AppCompatActivity(),
             mapStyle?.let { style -> intent.putExtra(MAP_STYLE, style) }
             intent.putExtra(ENABLE_GOOGLE_PLACES, googlePlacesEnabled)
             intent.putExtra(ENABLE_GOOGLE_TIME_ZONE, googleTimeZoneEnabled)
+            intent.putExtra(ENABLE_SEARCH, searchEnabled)
             intent.putExtra(ENABLE_VOICE_SEARCH, voiceSearchEnabled)
             intent.putExtra(UNNAMED_ROAD_VISIBILITY, unnamedRoadVisible)
 

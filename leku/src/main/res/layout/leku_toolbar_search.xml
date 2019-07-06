@@ -13,6 +13,7 @@
     android:background="@drawable/leku_toolbar_custom_background"
     app:theme="@style/ThemeOverlay.AppCompat.Light"
     app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+    app:title="@string/leku_title_activity_location_picker"
     tools:ignore="UnusedAttribute,elevation"
     >
 
