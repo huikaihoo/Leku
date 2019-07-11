@@ -1,0 +1,125 @@
+package com.schibstedspain.leku
+
+import android.graphics.drawable.ColorDrawable
+import android.os.Build
+import android.util.DisplayMetrics
+import android.util.TypedValue
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
+
+abstract class TransparentActivity : AppCompatActivity() {
+
+    /**
+     * @return padding Top of GoogleMap UI component
+     */
+    protected val paddingTop: Int
+        get() = actionBarHeight + if (isStatusBarTransparent) statusBarHeight else 0
+
+    /**
+     * @return padding Bottom of GoogleMap UI component
+     */
+    protected val paddingBottom: Int
+        get() = if (isInMultiWindowMode) 0 else navigationBarHeight
+
+    /**
+     * Source: http://stackoverflow.com/questions/3407256/height-of-status-bar-in-android/3410200#3410200
+     * @return Height of StatusBar
+     */
+    private val statusBarHeight: Int
+        get() {
+            var result = 0
+            val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
+
+            if (resourceId > 0) {
+                result = resources.getDimensionPixelSize(resourceId)
+            }
+            return result
+        }
+
+    /**
+     * Source: http://stackoverflow.com/questions/29907615/android-transparent-status-bar-and-actionbar
+     * @return Height of StatusBar
+     */
+    private val actionBarHeight: Int
+        get() {
+            val tv = TypedValue()
+            theme.resolveAttribute(androidx.appcompat.R.attr.actionBarSize, tv, true)
+            return TypedValue.complexToDimensionPixelSize(tv.data, resources.displayMetrics)
+        }
+
+    /**
+     * Source: http://stackoverflow.com/questions/3407256/height-of-status-bar-in-android/3410200#3410200
+     * @return Height of NavigationBar
+     */
+    private val navigationBarHeight: Int
+        get() {
+            var result = 0
+            val resourceId = resources.getIdentifier("navigation_bar_height", "dimen", "android")
+
+            if (resourceId > 0 && showNavigationBar) {
+                result = resources.getDimensionPixelSize(resourceId)
+            }
+            return result
+        }
+
+    /**
+     * Source: https://stackoverflow.com/questions/28983621/detect-soft-navigation-bar-availability-in-android-device-progmatically
+     * @return true if NavigationBar exist
+     */
+    private val showNavigationBar: Boolean
+        get() {
+            val resourceId = resources.getIdentifier("config_showNavigationBar", "bool", "android")
+            return (resourceId > 0 && resources.getBoolean(resourceId))
+        }
+
+    /**
+     * Source: https://stackoverflow.com/questions/28983621/detect-soft-navigation-bar-availability-in-android-device-progmatically
+     * @return true if StatusBar is Transparent
+     */
+    private val isStatusBarTransparent: Boolean
+        get() {
+            if (!isInMultiWindowMode) {
+                return true
+            }
+
+            val d = windowManager.defaultDisplay
+
+            val realDisplayMetrics = DisplayMetrics()
+            d.getRealMetrics(realDisplayMetrics)
+
+            val realHeight = realDisplayMetrics.heightPixels
+            val realWidth = realDisplayMetrics.widthPixels
+
+            val displayMetrics = DisplayMetrics()
+            d.getMetrics(displayMetrics)
+
+            val displayHeight = displayMetrics.heightPixels + statusBarHeight + navigationBarHeight
+            val displayWidth = displayMetrics.widthPixels
+
+            return (displayHeight >= realHeight) || (displayWidth >= realWidth)
+        }
+
+    override fun isInMultiWindowMode(): Boolean {
+        var result = false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            result = super.isInMultiWindowMode()
+        }
+        return result
+    }
+
+    protected fun setupActionBar() {
+        // Setup ActionBar
+        supportActionBar?.let {
+            it.setBackgroundDrawable(
+                ColorDrawable(
+                    ContextCompat.getColor(this, R.color.leku_toolbar_background)
+                )
+            )
+            it.setDisplayHomeAsUpEnabled(true)
+        }
+
+        // Setup Toolbar
+        findViewById<Toolbar>(R.id.action_bar)?.contentInsetStartWithNavigation = 0
+    }
+}

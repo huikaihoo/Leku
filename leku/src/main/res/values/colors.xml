@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <color name="leku_white">#FFFFFF</color>
-  <color name="leku_white_alpha">#F2FFFFFF</color>
-  <color name="leku_soft_grey">#ECEEEF</color>
+  <color name="leku_white">#121212</color>
+  <color name="leku_white_alpha">#D2000000</color>
+  <color name="leku_soft_grey">#242424</color>
   <color name="leku_mid_grey">#9199A1</color>
-  <color name="leku_strong_grey">#50545A</color>
+  <color name="leku_strong_grey">#F5F5F5</color>
+  <color name="leku_toolbar_background">#59000000</color>
   <color name="leku_search_background">#0000</color>
 </resources>

@@ -17,7 +17,7 @@ android {
   resourcePrefix 'leku_'
 
   defaultConfig {
-    minSdkVersion 15
+    minSdkVersion 19
     targetSdkVersion 28
     versionName version
     multiDexEnabled true

@@ -19,7 +19,6 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
 import androidx.annotation.RawRes
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
@@ -86,7 +85,7 @@ private const val WIDER_ZOOM = 6
 private const val MIN_CHARACTERS = 2
 private const val DEBOUNCE_TIME = 400
 
-class LocationPickerActivity : AppCompatActivity(),
+class LocationPickerActivity : TransparentActivity(),
         OnMapReadyCallback,
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
@@ -142,7 +141,7 @@ class LocationPickerActivity : AppCompatActivity(),
     private var isVoiceSearchEnabled = true
     private var isUnnamedRoadVisible = true
     private var mapStyle: Int? = null
-    private lateinit var toolbar: Toolbar
+    private var toolbar: Toolbar? = null
     private lateinit var timeZone: TimeZone
 
     private val searchTextWatcher: TextWatcher
@@ -216,6 +215,7 @@ class LocationPickerActivity : AppCompatActivity(),
         checkLocationPermission()
         setUpSearchView()
         setUpMapIfNeeded()
+        setUpLocationInfo()
         setUpFloatingButtons()
         buildGoogleApiClient()
         track(TrackEvents.ON_LOAD_LOCATION_PICKER)
@@ -244,7 +244,7 @@ class LocationPickerActivity : AppCompatActivity(),
         geocoderPresenter?.setUI(this)
         progressBar = findViewById(R.id.loading_progress_bar)
         progressBar?.visibility = View.GONE
-        searchLayout = findViewById(R.id.leku_search_touch_zone)
+        //searchLayout = findViewById(R.id.leku_search_touch_zone)
         locationInfoLayout = findViewById(R.id.location_info)
         longitude = findViewById(R.id.longitude)
         latitude = findViewById(R.id.latitude)
@@ -252,7 +252,7 @@ class LocationPickerActivity : AppCompatActivity(),
         coordinates = findViewById(R.id.coordinates)
         city = findViewById(R.id.city)
         zipCode = findViewById(R.id.zipCode)
-        clearSearchButton = findViewById(R.id.leku_clear_search_image)
+//        clearSearchButton = findViewById(R.id.leku_clear_search_image)
         clearSearchButton?.setOnClickListener {
             searchView?.setText("")
         }
@@ -273,29 +273,30 @@ class LocationPickerActivity : AppCompatActivity(),
     }
 
     private fun setUpToolBar() {
-        toolbar = findViewById(R.id.map_search_toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.let {
-            it.setDisplayHomeAsUpEnabled(true)
-            it.setDisplayShowTitleEnabled(!isSearchEnabled)
-        }
-        if (isSearchEnabled) {
-            searchLayout?.visibility = View.VISIBLE
-        } else {
-            searchLayout?.visibility = View.GONE
-        }
+        setupActionBar()
+//        toolbar = findViewById(R.id.map_search_toolbar)
+//        setSupportActionBar(toolbar)
+//        supportActionBar?.let {
+//            it.setDisplayHomeAsUpEnabled(true)
+//            it.setDisplayShowTitleEnabled(!isSearchEnabled)
+//        }
+//        if (isSearchEnabled) {
+//            searchLayout?.visibility = View.VISIBLE
+//        } else {
+//            searchLayout?.visibility = View.GONE
+//        }
     }
 
     private fun switchToolbarVisibility() {
-        if (isPlayServicesAvailable()) {
-            toolbar.visibility = View.VISIBLE
-        } else {
-            toolbar.visibility = View.GONE
-        }
+//        if (isPlayServicesAvailable()) {
+//            toolbar.visibility = View.VISIBLE
+//        } else {
+//            toolbar.visibility = View.GONE
+//        }
     }
 
     private fun setUpSearchView() {
-        searchView = findViewById(R.id.leku_search)
+//        searchView = findViewById(R.id.leku_search)
         searchView?.setOnEditorActionListener { v, actionId, _ ->
             var handled = false
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
@@ -307,6 +308,14 @@ class LocationPickerActivity : AppCompatActivity(),
         }
         textWatcher = searchTextWatcher
         searchView?.addTextChangedListener(textWatcher)
+    }
+
+    private fun setUpLocationInfo() {
+        locationInfoLayout?.setPadding(
+            locationInfoLayout!!.paddingLeft,
+            locationInfoLayout!!.paddingTop,
+            locationInfoLayout!!.paddingRight,
+            locationInfoLayout!!.paddingBottom + paddingBottom)
     }
 
     private fun setUpFloatingButtons() {
@@ -394,7 +403,7 @@ class LocationPickerActivity : AppCompatActivity(),
         when (requestCode) {
             REQUEST_PLACE_PICKER -> if (resultCode == Activity.RESULT_OK && data != null) {
                 val matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                searchView = findViewById(R.id.leku_search)
+//                searchView = findViewById(R.id.leku_search)
                 retrieveLocationFrom(matches[0])
             }
             else -> {
@@ -1075,6 +1084,7 @@ class LocationPickerActivity : AppCompatActivity(),
             mapStyle?.let { style ->
                 val loadStyle = MapStyleOptions.loadRawResourceStyle(this, style)
                 googleMap.setMapStyle(loadStyle)
+                googleMap.setPadding(0, paddingTop, 0, paddingBottom)
             }
         }
     }
@@ -1094,7 +1104,7 @@ class LocationPickerActivity : AppCompatActivity(),
         if (currentLocation != null) {
             setCurrentPositionLocation()
         } else {
-            searchView = findViewById(R.id.leku_search)
+//            searchView = findViewById(R.id.leku_search)
             retrieveLocationFrom(Locale.getDefault().displayCountry)
             hasWiderZoom = true
         }

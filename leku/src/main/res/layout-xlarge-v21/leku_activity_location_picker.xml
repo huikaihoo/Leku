@@ -145,5 +145,5 @@
     </FrameLayout>
   </LinearLayout>
 
-  <include layout="@layout/leku_toolbar_search" />
+  <!--<include layout="@layout/leku_toolbar_search" />-->
 </merge>
